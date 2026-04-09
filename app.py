@@ -46,6 +46,15 @@ fleet_translation = {
 # The dropdown now uses the keys (the ICAO codes) from our dictionary
 selected_aircraft = st.multiselect( "Select Aircraft to Fly", list(fleet_translation.keys()), default=["A320", "B738", "B77W"])
 
+# The "ttl=300" means this data is saved in memory for 300 seconds (5 minutes)
+@st.cache_data(ttl=300)
+def fetch_flight_data(url, _headers, querystring):
+    response = requests.get(url, headers=_headers, params=querystring)
+    if response.status_code == 200:
+        return response.json(), 200
+    else:
+        return response.text, response.status_code
+
 # --- THE BUTTON (The Action) ---
 if st.button("Search Departures"):
     
@@ -67,10 +76,10 @@ if st.button("Search Departures"):
 
     with st.spinner("Talking to ATC (Fetching data)..."):
         response = requests.get(url, headers=headers, params=querystring)
+        flight_data, status_code = fetch_flight_data(url, headers, querystring)
 
     # --- DISPLAY RESULTS ---
     if response.status_code == 200:
-        flight_data = response.json()
         found_flights = False
         
         for flight in flight_data.get("departures", []):
