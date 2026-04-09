@@ -12,6 +12,11 @@ if "last_search_params" not in st.session_state:
     st.session_state.last_search_params = ""
 if "last_status" not in st.session_state:
     st.session_state.last_status = 200
+if "default_date" not in st.session_state:
+    st.session_state.default_date = datetime.today()
+if "default_time" not in st.session_state:
+    # We strip the seconds and microseconds so the UI looks perfectly clean
+    st.session_state.default_time = datetime.now().replace(second=0, microsecond=0).time()
 
 # --- UI SETUP ---
 st.set_page_config(page_title="FlightSim Dispatcher", page_icon="✈️")
