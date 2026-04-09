@@ -68,7 +68,7 @@ if st.button("Search Departures"):
         # NEW: Shows a red/yellow box directly on your website!
         st.warning("🛑 DANGER: FIRING LIVE API CALL TO RAPIDAPI! 🛑")
         
-       try:
+        try:
             # 1. Load the offline database of 10,000+ airports
             airports = airportsdata.load('ICAO')
             # 2. Look up the specific timezone string (e.g., 'America/New_York')
