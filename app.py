@@ -24,7 +24,6 @@ with col1:
 with col2:
     hours_ahead = st.slider("Look ahead (Hours)", min_value=1, max_value=6, value=2)
 with col3:
-    # Adding the new toggle
     flight_type = st.radio("Flight Type", ["Passenger", "Cargo", "Both"])
 
 fleet_translation = {
@@ -67,10 +66,10 @@ if st.button("Search Departures"):
     
     # Check if we ALREADY did this exact search
     if st.session_state.last_search_params == current_search and st.session_state.saved_flights is not None:
-        # NEW: Shows a green box directly on your website!
+        # Shows a green box directly on your website!
         st.success("🟢 USING SAVED MEMORY. NO API CALL MADE.") 
     else:
-        # NEW: Shows a red/yellow box directly on your website!
+        # Shows a red/yellow box directly on your website!
         st.warning("🛑 DANGER: FIRING LIVE API CALL TO RAPIDAPI! 🛑")
         
         try:
@@ -134,6 +133,13 @@ if st.session_state.saved_flights is not None:
         for flight in departures_list:
             if flight.get("codeshareStatus") == "IsCodeshared":
                 continue 
+
+            is_cargo_flight = flight.get("isCargo", False)
+            
+            if flight_type == "Passenger" and is_cargo_flight:
+                continue # Skip this plane, we only want passengers
+            if flight_type == "Cargo" and not is_cargo_flight:
+                continue # Skip this plane, we only want cargo
                 
             # Grab the raw model name and instantly force it to UPPERCASE
             raw_model = flight.get("aircraft", {}).get("model", "").upper()
