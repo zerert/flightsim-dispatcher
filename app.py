@@ -38,10 +38,10 @@ st.write("Leave as 'Today/Now' for live departures, or pick a custom time to pla
 col4, col5 = st.columns(2)
 with col4:
     # Defaults to today's date
-    selected_date = st.date_input("Flight Date", value=datetime.today())
+    selected_date = st.date_input("Flight Date", value=st.session_state.default_date)
 with col5:
     # Defaults to the exact current time
-    selected_time = st.time_input("Departure Time", value=datetime.now().time())
+    selected_time = st.time_input("Departure Time", value=st.session_state.default_time)
 
 fleet_translation = {
     "A319": ["A319", "319"], 
