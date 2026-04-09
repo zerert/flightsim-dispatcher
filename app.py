@@ -23,9 +23,9 @@ with col2:
     hours_ahead = st.slider("Look ahead (Hours)", min_value=1, max_value=6, value=2)
 
 fleet_translation = {
-    "A319": "A319", "A320": "A320", "A321": "A321", "A332": "A330-200", "A333": "A330-300", "A339": "A330-900", 
-    "A343": "A340-300", "A346": "A340-600", "A359": "A350-900", "A35K": "A350-1000", "A388": "A380", "B737": "737-700",
-    "B738": "737-800", "B739": "737-900", "B744": "747-400", "B748": "747-8", "B772": "777-200", "B772ER": "777-200ER",
+    "A319": "A319", "A19N": "A319 NEO", "A320": "A320", "A20N": "A320 NEO", "A321": "A321", "A21N": "A321 NEO", "A332": "A330-200", 
+    "A333": "A330-300", "A339": "A330-900", "A343": "A340-300", "A346": "A340-600", "A359": "A350-900", "A35K": "A350-1000", "A388": "A380", 
+    "B737": "737-700", "B738": "737-800", "B739": "737-900", "B744": "747-400", "B748": "747-8", "B772": "777-200", "B772ER": "777-200ER",
     "B77F": "777F", "B773": "777-300", "B77W": "777-300ER", "B788": "787-8", "B789": "787-9", "B78X": "787-10",
 }
 selected_aircraft = st.multiselect("Select Aircraft to Fly", list(fleet_translation.keys()), default=["A320", "B738", "B77W"])
@@ -88,10 +88,19 @@ if st.session_state.saved_flights is not None:
             if flight.get("codeshareStatus") == "IsCodeshared":
                 continue 
                 
-            aircraft_model = flight.get("aircraft", {}).get("model", "")
-            search_terms = [fleet_translation[plane] for plane in selected_aircraft]
+            # Grab the raw model name and instantly force it to UPPERCASE
+            raw_model = flight.get("aircraft", {}).get("model", "").upper()
             
-            if any(term in aircraft_model for term in search_terms):
+            # --- THE FUZZY SEARCH ---
+            is_my_plane = False
+            for selected in selected_aircraft:
+                keywords = fleet_translation[selected]
+                # If ANY keyword is hiding inside the raw_model string
+                if any(keyword in raw_model for keyword in keywords):
+                    is_my_plane = True
+                    break # Stop searching, we found a match!
+            
+            if is_my_plane:
                 found_flights = True
                 airline = flight.get("airline", {}).get("name", "Unknown")
                 flight_num = flight.get("number", "")
@@ -101,7 +110,8 @@ if st.session_state.saved_flights is not None:
                 dep_time = raw_time[11:16] if raw_time != "Unknown" else raw_time
                 gate = flight.get("movement", {}).get("gate", "TBA")
                 
-                st.success(f"**{dep_time}** | {airline} {flight_num} to **{destination}** | 🚪 Gate: **{gate}** | 🛩️ {aircraft_model}")
+                # Notice we use the 'raw_model' here so you see exactly what the API sent
+                st.success(f"**{dep_time}** | {airline} {flight_num} to **{destination}** | 🚪 Gate: **{gate}** | 🛩️ {raw_model}")
                 
         if not found_flights:
             st.warning("No flights found matching your criteria in that timeframe.")
