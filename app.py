@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 from datetime import datetime, timedelta
+import airportsdata
+import pytz
 
 # --- MANUAL MEMORY VAULT ---
 # This forces Streamlit to remember our data even if the page refreshes
@@ -66,8 +68,23 @@ if st.button("Search Departures"):
         # NEW: Shows a red/yellow box directly on your website!
         st.warning("🛑 DANGER: FIRING LIVE API CALL TO RAPIDAPI! 🛑")
         
-        now = datetime.now()
+       try:
+            # 1. Load the offline database of 10,000+ airports
+            airports = airportsdata.load('ICAO')
+            # 2. Look up the specific timezone string (e.g., 'America/New_York')
+            tz_string = airports.get(airport_code, {}).get('tz', 'UTC')
+            local_tz = pytz.timezone(tz_string)
+            
+            # 3. Get the exact current time in that specific timezone!
+            now = datetime.now(local_tz) 
+        except:
+            # Fallback to server time just in case the user types a fake airport code
+            now = datetime.now() 
+            tz_string = "Unknown Timezone"
+            
         later = now + timedelta(hours=hours_ahead)
+        
+        # The .strftime cuts off the timezone data, leaving just the raw local time string the API wants
         start_time = now.strftime("%Y-%m-%dT%H:%M")
         end_time = later.strftime("%Y-%m-%dT%H:%M")
         
@@ -79,7 +96,7 @@ if st.button("Search Departures"):
             "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
         }
 
-        with st.spinner("Talking to ATC (Fetching data)..."):
+        with st.spinner("Talking to ATC (Fetching data for {tz_string})..."):
             response = requests.get(url, headers=headers, params=querystring)
             
             # Save the results to our physical vault
