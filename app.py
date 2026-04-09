@@ -63,7 +63,7 @@ selected_aircraft = st.multiselect("Select Aircraft to Fly", list(fleet_translat
 # --- THE BUTTON LOGIC ---
 if st.button("Search Departures"):
     
-    current_search = f"{airport_code}_{hours_ahead}"
+    current_search = f"{airport_code}_{hours_ahead}_{flight_type}"
     
     # Check if we ALREADY did this exact search
     if st.session_state.last_search_params == current_search and st.session_state.saved_flights is not None:
