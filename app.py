@@ -96,7 +96,7 @@ if st.button("Search Departures"):
         api_with_cargo = "true" if flight_type in ["Cargo", "Both"] else "false"
         
         url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport_code}/{start_time}/{end_time}"
-        querystring = {"direction": "Departure", "withCancelled": "false",}
+        querystring = {"direction": "Departure", "withCancelled": "false", "withCargo": api_with_cargo}
         
         headers = {
             "X-RapidAPI-Key": st.secrets["RAPID_API_KEY"], 
