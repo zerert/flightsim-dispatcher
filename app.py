@@ -46,37 +46,36 @@ fleet_translation = {
 selected_aircraft = st.multiselect("Select Aircraft to Fly", list(fleet_translation.keys()), default=["A320", "B738", "B77W"])
 
 # --- CACHING THE API CALL ---
-# saves the data for 5 minutes so you don't burn quota on multiple clicks!
 @st.cache_data(ttl=300)
-def fetch_flight_data(url, _headers, querystring):
-    response = requests.get(url, headers=_headers, params=querystring)
-    if response.status_code == 200:
-        try:
-            return response.json(), 200
-        except:
-            return {}, 200 # Fallback if API returns empty data
-    else:
-        return response.text, response.status_code
-
-# --- THE BUTTON ---
-if st.button("Search Departures"):
-    
+def fetch_flight_data(airport, hours):
     now = datetime.now()
-    later = now + timedelta(hours=hours_ahead)
+    later = now + timedelta(hours=hours)
     start_time = now.strftime("%Y-%m-%dT%H:%M")
     end_time = later.strftime("%Y-%m-%dT%H:%M")
     
-    url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport_code}/{start_time}/{end_time}"
+    url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport}/{start_time}/{end_time}"
     querystring = {"direction": "Departure", "withCancelled": "false", "withCargo": "false"}
     
+    # We also moved the secret key inside to keep everything tidy
     headers = {
         "X-RapidAPI-Key": st.secrets["RAPID_API_KEY"], 
         "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
     }
 
+    response = requests.get(url, headers=headers, params=querystring)
+    if response.status_code == 200:
+        try:
+            return response.json(), 200
+        except:
+            return {}, 200 
+    else:
+        return response.text, response.status_code
+
+# --- THE BUTTON ---
+if st.button("Search Departures"):
     with st.spinner("Talking to ATC (Fetching data)..."):
-        # We call our cached function instead of hitting the API directly
-        flight_data, status_code = fetch_flight_data(url, headers, querystring)
+        # Look how clean this is now! We just pass the two UI variables.
+        flight_data, status_code = fetch_flight_data(airport_code, hours_ahead)
 
     # --- DISPLAY RESULTS ---
     if status_code == 200:
