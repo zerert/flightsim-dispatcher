@@ -49,7 +49,7 @@ if st.button("Search Departures"):
         end_time = later.strftime("%Y-%m-%dT%H:%M")
         
         url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport_code}/{start_time}/{end_time}"
-        querystring = {"direction": "Departure", "withCancelled": "false", "withCargo": "false"}
+        querystring = {"direction": "Departure", "withCancelled": "false",}
         
         headers = {
             "X-RapidAPI-Key": st.secrets["RAPID_API_KEY"], 
