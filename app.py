@@ -92,6 +92,7 @@ if st.button("Search Departures"):
         start_time = now.strftime("%Y-%m-%dT%H:%M")
         end_time = later.strftime("%Y-%m-%dT%H:%M")
 
+        #either include or exclude cargo flights in the list
         api_with_cargo = "true" if flight_type in ["Cargo", "Both"] else "false"
         
         url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport_code}/{start_time}/{end_time}"
