@@ -7,12 +7,12 @@ st.set_page_config(page_title="FlightSim Dispatcher", page_icon="✈️")
 st.title("✈️ FlightSim Dispatcher")
 st.write("Find real-world flights departing right now for your simulator.")
 
-# --- USER INPUTS (The Frontend) ---
+# --- USER INPUTS ---
 col1, col2 = st.columns(2)
 with col1:
     airport_code = st.text_input("Departure Airport (ICAO)", value="WSSS").upper()
 with col2:
-    hours_ahead = st.slider("Look ahead (Hours)", min_value=1, max_value=5, value=2)
+    hours_ahead = st.slider("Look ahead (Hours)", min_value=1, max_value=6, value=2)
 
 # A Dictionary to translate UI codes into API search terms
 fleet_translation = {
@@ -43,77 +43,74 @@ fleet_translation = {
     "B78X": "787-10",
 }
 
-# The dropdown now uses the keys (the ICAO codes) from our dictionary
-selected_aircraft = st.multiselect( "Select Aircraft to Fly", list(fleet_translation.keys()), default=["A320", "B738", "B77W"])
+selected_aircraft = st.multiselect("Select Aircraft to Fly", list(fleet_translation.keys()), default=["A320", "B738", "B77W"])
 
-# The "ttl=300" means this data is saved in memory for 300 seconds (5 minutes)
+# --- CACHING THE API CALL ---
+# saves the data for 5 minutes so you don't burn quota on multiple clicks!
 @st.cache_data(ttl=300)
 def fetch_flight_data(url, _headers, querystring):
     response = requests.get(url, headers=_headers, params=querystring)
     if response.status_code == 200:
-        return response.json(), 200
+        try:
+            return response.json(), 200
+        except:
+            return {}, 200 # Fallback if API returns empty data
     else:
         return response.text, response.status_code
 
-# --- THE BUTTON (The Action) ---
+# --- THE BUTTON ---
 if st.button("Search Departures"):
     
-    # Calculate dynamic times based on your PC's current clock
     now = datetime.now()
     later = now + timedelta(hours=hours_ahead)
     start_time = now.strftime("%Y-%m-%dT%H:%M")
     end_time = later.strftime("%Y-%m-%dT%H:%M")
     
-    # Setup the API request
     url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport_code}/{start_time}/{end_time}"
     querystring = {"direction": "Departure", "withCancelled": "false", "withCargo": "false"}
     
     headers = {
-        # This looks for the key in Streamlit's "Advanced Settings" vault
         "X-RapidAPI-Key": st.secrets["RAPID_API_KEY"], 
         "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
     }
 
     with st.spinner("Talking to ATC (Fetching data)..."):
-        response = requests.get(url, headers=headers, params=querystring)
+        # We call our cached function instead of hitting the API directly
         flight_data, status_code = fetch_flight_data(url, headers, querystring)
 
     # --- DISPLAY RESULTS ---
-    if response.status_code == 200:
+    if status_code == 200:
         found_flights = False
         
-        for flight in flight_data.get("departures", []):
-            
-            # FIXED 1: Filter out ghost flights / codeshares
+        # --- THE FIX: BULLETPROOF SAFEGUARD ---
+        # We force Python to double-check that the data is a dictionary before using .get()
+        if isinstance(flight_data, dict):
+            departures_list = flight_data.get("departures", [])
+        elif isinstance(flight_data, list):
+            departures_list = flight_data # Backup plan if the API just returns a raw list
+        else:
+            departures_list = [] # Backup plan if the API returns None
+        
+        for flight in departures_list:
             if flight.get("codeshareStatus") == "IsCodeshared":
                 continue 
                 
             aircraft_model = flight.get("aircraft", {}).get("model", "")
-            
-            # Translate the UI selections into the terms the API actually uses
             search_terms = [fleet_translation[plane] for plane in selected_aircraft]
             
-            # If the translated search term matches the API's aircraft model
             if any(term in aircraft_model for term in search_terms):
                 found_flights = True
-                
                 airline = flight.get("airline", {}).get("name", "Unknown")
                 flight_num = flight.get("number", "")
                 
-                #Tell Streamlit to look in the "movement" section for destination & time
                 destination = flight.get("movement", {}).get("airport", {}).get("name", "Unknown")
                 raw_time = flight.get("movement", {}).get("scheduledTime", {}).get("local", "Unknown")
-                
-                # Chop the long date string down to just HH:MM
                 dep_time = raw_time[11:16] if raw_time != "Unknown" else raw_time
-
-                # --- NEW: Grab the gate number (default to "TBA" if the airport hasn't assigned it yet) ---
                 gate = flight.get("movement", {}).get("gate", "TBA")
                 
-                # --- UPDATED: Add the gate to the UI output ---
                 st.success(f"**{dep_time}** | {airline} {flight_num} to **{destination}** | 🚪 Gate: **{gate}** | 🛩️ {aircraft_model}")
                 
         if not found_flights:
-            st.warning("No flights found matching your selected aircraft in that timeframe.")
+            st.warning("No flights found matching your criteria in that timeframe.")
     else:
-        st.error(f"API Error {response.status_code}! Server says: {response.text}")
+        st.error(f"API Error {status_code}! Server says: {flight_data}")
