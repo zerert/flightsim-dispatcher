@@ -18,11 +18,14 @@ st.set_page_config(page_title="FlightSim Dispatcher", page_icon="✈️")
 st.title("✈️ FlightSim Dispatcher")
 st.write("Find real-world flights departing right now for your simulator.")
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     airport_code = st.text_input("Departure Airport (ICAO)", value="WSSS").upper()
 with col2:
     hours_ahead = st.slider("Look ahead (Hours)", min_value=1, max_value=6, value=2)
+with col3:
+    # Adding the new toggle
+    flight_type = st.radio("Flight Type", ["Passenger", "Cargo", "Both"])
 
 fleet_translation = {
     "A319": ["A319", "319"], 
@@ -89,6 +92,8 @@ if st.button("Search Departures"):
         # The .strftime cuts off the timezone data, leaving just the raw local time string the API wants
         start_time = now.strftime("%Y-%m-%dT%H:%M")
         end_time = later.strftime("%Y-%m-%dT%H:%M")
+
+        api_with_cargo = "true" if flight_type in ["Cargo", "Both"] else "false"
         
         url = f"https://aerodatabox.p.rapidapi.com/flights/airports/icao/{airport_code}/{start_time}/{end_time}"
         querystring = {"direction": "Departure", "withCancelled": "false",}
@@ -98,7 +103,7 @@ if st.button("Search Departures"):
             "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
         }
 
-        with st.spinner("Talking to ATC (Fetching data for {tz_string})..."):
+        with st.spinner("Talking to ATC (Fetching data {flight_type} data for {tz_string})..."):
             response = requests.get(url, headers=headers, params=querystring)
             
             # Save the results to our physical vault
