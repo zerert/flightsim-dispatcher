@@ -26,6 +26,18 @@ with col2:
 with col3:
     flight_type = st.radio("Flight Type", ["Passenger", "Cargo", "Both"])
 
+# --- TIME MACHINE UI ---
+st.markdown("### 🕰️ Time Machine Settings")
+st.write("Leave as 'Today/Now' for live departures, or pick a custom time to plan ahead!")
+
+col4, col5 = st.columns(2)
+with col4:
+    # Defaults to today's date
+    selected_date = st.date_input("Flight Date", value=datetime.today())
+with col5:
+    # Defaults to the exact current time
+    selected_time = st.time_input("Departure Time", value=datetime.now().time())
+
 fleet_translation = {
     "A319": ["A319", "319"], 
     "A19N": ["A319 NEO", "A19N", "319N"], 
@@ -62,7 +74,8 @@ selected_aircraft = st.multiselect("Select Aircraft to Fly", list(fleet_translat
 # --- THE BUTTON LOGIC ---
 if st.button("Search Departures"):
     
-    current_search = f"{airport_code}_{hours_ahead}_{flight_type}"
+    # NEW: We added the date and time to the vault key so the cache stays accurate!
+    current_search = f"{airport_code}_{hours_ahead}_{flight_type}_{selected_date}_{selected_time}"
     
     # Check if we ALREADY did this exact search
     if st.session_state.last_search_params == current_search and st.session_state.saved_flights is not None:
@@ -79,18 +92,22 @@ if st.button("Search Departures"):
             tz_string = airports.get(airport_code, {}).get('tz', 'UTC')
             local_tz = pytz.timezone(tz_string)
             
-            # 3. Get the exact current time in that specific timezone!
-            now = datetime.now(local_tz) 
+            # --- NEW: MERGING DATE AND TIME ---
+            # 1. Mash the user's date and time together into one object
+            combined_dt = datetime.combine(selected_date, selected_time)
+            
+            # 2. Tell Python: "Hey, this time belongs to the airport's timezone!"
+            localized_start = local_tz.localize(combined_dt)
         except:
-            # Fallback to server time just in case the user types a fake airport code
-            now = datetime.now() 
+            # Fallback if the timezone breaks
+            localized_start = datetime.combine(selected_date, selected_time)
             tz_string = "Unknown Timezone"
             
-        later = now + timedelta(hours=hours_ahead)
+       # Calculate the end time based on the slider
+        localized_end = localized_start + timedelta(hours=hours_ahead)
         
-        # The .strftime cuts off the timezone data, leaving just the raw local time string the API wants
-        start_time = now.strftime("%Y-%m-%dT%H:%M")
-        end_time = later.strftime("%Y-%m-%dT%H:%M")
+        start_time = localized_start.strftime("%Y-%m-%dT%H:%M")
+        end_time = localized_end.strftime("%Y-%m-%dT%H:%M")
 
         #either include or exclude cargo flights in the list
         api_with_cargo = "true" if flight_type in ["Cargo", "Both"] else "false"
