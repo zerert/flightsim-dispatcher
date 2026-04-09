@@ -35,12 +35,13 @@ if st.button("Search Departures"):
     
     current_search = f"{airport_code}_{hours_ahead}"
     
-    # Check if we ALREADY did this exact search. If yes, skip the API!
+    # Check if we ALREADY did this exact search
     if st.session_state.last_search_params == current_search and st.session_state.saved_flights is not None:
-        print("🟢 USING SAVED MEMORY. NO API CALL MADE.")
+        # NEW: Shows a green box directly on your website!
+        st.success("🟢 USING SAVED MEMORY. NO API CALL MADE.") 
     else:
-        # We must fetch new data!
-        print("🛑 DANGER: FIRING LIVE API CALL TO RAPIDAPI! 🛑")
+        # NEW: Shows a red/yellow box directly on your website!
+        st.warning("🛑 DANGER: FIRING LIVE API CALL TO RAPIDAPI! 🛑")
         
         now = datetime.now()
         later = now + timedelta(hours=hours_ahead)
