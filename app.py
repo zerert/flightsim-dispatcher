@@ -33,15 +33,23 @@ with col3:
 
 # --- TIME MACHINE UI ---
 st.markdown("### 🕰️ Time Machine Settings")
-st.write("Leave as 'Today/Now' for live departures, or pick a custom time to plan ahead!")
 
-col4, col5 = st.columns(2)
-with col4:
-    # Defaults to today's date
-    selected_date = st.date_input("Flight Date", value=st.session_state.default_date)
-with col5:
-    # Defaults to the exact current time
-    selected_time = st.time_input("Departure Time", value=st.session_state.default_time)
+# 1. The Toggle Switch
+live_mode = st.toggle("🟢 Live Mode (Use Current Time)", value=True)
+
+if live_mode:
+    # 2. If ON: Force the variables to exactly right now (and strip seconds so we don't break our cache!)
+    selected_date = datetime.today()
+    selected_time = datetime.now().replace(second=0, microsecond=0).time()
+    
+    st.caption(f"Currently tracking live flights starting from {selected_time.strftime('%H:%M')}.")
+else:
+    # 3. If OFF: Show the manual input boxes for future planning
+    col4, col5 = st.columns(2)
+    with col4:
+        selected_date = st.date_input("Flight Date", value=st.session_state.default_date)
+    with col5:
+        selected_time = st.time_input("Departure Time", value=st.session_state.default_time)
 
 fleet_translation = {
     "A319": ["A319", "319"], 
