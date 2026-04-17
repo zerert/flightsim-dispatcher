@@ -42,7 +42,7 @@ if live_mode:
     selected_date = datetime.today()
     selected_time = datetime.now().replace(second=0, microsecond=0).time()
     
-    st.caption(f"Currently tracking live flights starting from {selected_time.strftime('%H:%M')}.")
+    st.caption(f"Currently tracking live flights starting from {selected_time.strftime('%H:%M')} UTC.")
 else:
     # 3. If OFF: Show the manual input boxes for future planning
     col4, col5 = st.columns(2)
